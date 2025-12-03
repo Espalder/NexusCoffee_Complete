@@ -1,0 +1,35 @@
+NEXUS COFFEE - SISTEMA DE GESTIÓN
+====================================
+
+Este es el sistema completo de gestión para Nexus Coffee, incluyendo:
+
+- Gestión de ventas
+- Control de inventario
+- Administración de clientes
+- Reportes y estadísticas
+- Generación de facturas en PDF
+
+REQUISITOS:
+- Python 3.7 o superior
+- Windows (los scripts están configurados para Windows)
+
+INSTALACIÓN:
+1. Ejecuta INSTALAR.bat para crear el entorno virtual e instalar dependencias
+2. Espera a que termine el proceso de instalación
+
+EJECUCIÓN:
+1. Ejecuta EJECUTAR.bat para iniciar el sistema
+2. El sistema se abrirá automáticamente
+
+ARCHIVOS IMPORTANTES:
+- main_modular.py: Archivo principal del sistema
+- nexus_coffee.db: Base de datos SQLite
+- config.py: Configuración del sistema
+- requirements.txt: Dependencias Python
+
+NOTAS:
+- El sistema está configurado para usar base de datos SQLite por defecto
+- Puedes modificar la configuración en config.py si necesitas usar MySQL
+- Los reportes PDF se generan en el directorio del proyecto
+
+¡Disfruta del sistema Nexus Coffee!

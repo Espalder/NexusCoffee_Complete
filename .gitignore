@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.db
+pdfs_generados/
+reportes_pdf/
+.DS_Store
+*.log
+config_mysql.json

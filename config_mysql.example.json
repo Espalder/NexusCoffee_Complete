@@ -1,0 +1,7 @@
+{
+  "host": "localhost",
+  "user": "root",
+  "password": "",
+  "database": "nexus_coffee",
+  "port": 3306
+}
