@@ -338,9 +338,17 @@ class NexusCafeApp:
         tk.Label(titulo_frame, text=f"Bienvenido, {self.usuario_actual['nombre']}", 
                font=("Arial", 18, "bold"), bg="#ECF0F1", fg="#2C3E50").pack(anchor="w")
         
-        # Frame de contenido
-        contenido = tk.Frame(self.contenido_frame, bg="#ECF0F1", padx=20, pady=10)
-        contenido.pack(fill="both", expand=True)
+        outer = tk.Frame(self.contenido_frame, bg="#ECF0F1", padx=0, pady=0)
+        outer.pack(fill="both", expand=True)
+        canvas = tk.Canvas(outer, bg="#ECF0F1")
+        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        contenido = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=10)
+        contenido.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        win = canvas.create_window((0, 0), window=contenido, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # Obtener datos para el resumen
         fecha_hoy = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -972,15 +980,22 @@ class NexusCafeApp:
         item = self.tabla_ventas.item(seleccion[0])
         venta_id = item['values'][0]
         
-        # Crear ventana de detalles
         detalles_window = tk.Toplevel(self.root)
         detalles_window.title("Detalles de Venta")
         detalles_window.geometry("700x500")
         detalles_window.configure(bg="#ECF0F1")
-        
-        # Frame principal
-        main_frame = tk.Frame(detalles_window, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.pack(fill="both", expand=True)
+
+        outer = tk.Frame(detalles_window, bg="#ECF0F1")
+        outer.pack(fill="both", expand=True)
+        canvas = tk.Canvas(outer, bg="#ECF0F1")
+        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # Información de la venta
         info_frame = tk.Frame(main_frame, bg="white", padx=15, pady=15, relief="solid", bd=1)
@@ -1310,15 +1325,22 @@ class NexusCafeApp:
         if not self.verificar_permiso_accion('crear_producto'):
             messagebox.showerror("Acceso Denegado", "No tiene permisos para crear productos")
             return
-        # Crear ventana para nuevo producto
         producto_window = tk.Toplevel(self.root)
         producto_window.title("Nuevo Producto")
         producto_window.geometry("500x500")
         producto_window.configure(bg="#ECF0F1")
-        
-        # Frame principal
-        main_frame = tk.Frame(producto_window, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.pack(fill="both", expand=True)
+
+        outer = tk.Frame(producto_window, bg="#ECF0F1")
+        outer.pack(fill="both", expand=True)
+        canvas = tk.Canvas(outer, bg="#ECF0F1")
+        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # Campos del formulario
         campos = [
@@ -1414,15 +1436,22 @@ class NexusCafeApp:
         item = self.tabla_productos.item(seleccion[0])
         producto_data = item['values']
         
-        # Crear ventana para editar producto
         producto_window = tk.Toplevel(self.root)
         producto_window.title("Editar Producto")
         producto_window.geometry("500x500")
         producto_window.configure(bg="#ECF0F1")
-        
-        # Frame principal
-        main_frame = tk.Frame(producto_window, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.pack(fill="both", expand=True)
+
+        outer = tk.Frame(producto_window, bg="#ECF0F1")
+        outer.pack(fill="both", expand=True)
+        canvas = tk.Canvas(outer, bg="#ECF0F1")
+        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # Campos del formulario
         campos = [
@@ -1858,15 +1887,22 @@ class NexusCafeApp:
             messagebox.showerror("Acceso Denegado", "No tiene permisos para crear clientes")
             return
             
-        # Crear ventana para nuevo cliente
         cliente_window = tk.Toplevel(self.root)
         cliente_window.title("Nuevo Cliente")
         cliente_window.geometry("400x350")
         cliente_window.configure(bg="#ECF0F1")
-        
-        # Frame principal
-        main_frame = tk.Frame(cliente_window, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.pack(fill="both", expand=True)
+
+        outer = tk.Frame(cliente_window, bg="#ECF0F1")
+        outer.pack(fill="both", expand=True)
+        canvas = tk.Canvas(outer, bg="#ECF0F1")
+        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # Campos del formulario
         campos = [
@@ -1940,15 +1976,22 @@ class NexusCafeApp:
         item = self.tabla_clientes.item(seleccion[0])
         cliente_data = item['values']
         
-        # Crear ventana para editar cliente
         cliente_window = tk.Toplevel(self.root)
         cliente_window.title("Editar Cliente")
         cliente_window.geometry("400x350")
         cliente_window.configure(bg="#ECF0F1")
-        
-        # Frame principal
-        main_frame = tk.Frame(cliente_window, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.pack(fill="both", expand=True)
+
+        outer = tk.Frame(cliente_window, bg="#ECF0F1")
+        outer.pack(fill="both", expand=True)
+        canvas = tk.Canvas(outer, bg="#ECF0F1")
+        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # Campos del formulario
         campos = [
