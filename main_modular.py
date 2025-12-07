@@ -338,17 +338,31 @@ class NexusCafeApp:
         tk.Label(titulo_frame, text=f"Bienvenido, {self.usuario_actual['nombre']}", 
                font=("Arial", 18, "bold"), bg="#ECF0F1", fg="#2C3E50").pack(anchor="w")
         
-        outer = tk.Frame(self.contenido_frame, bg="#ECF0F1", padx=0, pady=0)
+        outer = tk.Frame(self.contenido_frame, bg="#ECF0F1")
         outer.pack(fill="both", expand=True)
-        canvas = tk.Canvas(outer, bg="#ECF0F1")
+
+        canvas = tk.Canvas(outer, bg="#ECF0F1", highlightthickness=0)
         scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
         contenido = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=10)
+
         contenido.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        win = canvas.create_window((0, 0), window=contenido, anchor="nw")
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
+        contenido_window = canvas.create_window((0, 0), window=contenido, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(contenido_window, width=e.width))
         canvas.configure(yscrollcommand=scrollbar.set)
+
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+        def _wheel(e, c=canvas):
+            try:
+                steps = int(-e.delta / 120) if hasattr(e, "delta") else 0
+                if steps == 0:
+                    steps = -1 if getattr(e, "num", 0) == 5 else 1
+                c.yview_scroll(steps, "units")
+            except Exception:
+                pass
+        canvas.bind("<MouseWheel>", _wheel)
+        canvas.bind("<Button-4>", _wheel)
+        canvas.bind("<Button-5>", _wheel)
         
         # Obtener datos para el resumen
         fecha_hoy = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -431,25 +445,33 @@ class NexusCafeApp:
         tk.Label(stock_frame, text="Productos con Bajo Stock", font=("Arial", 12, "bold"), bg="white", fg="#2C3E50").pack(anchor="w", pady=(0, 10))
         
         if productos_bajo_stock:
-            # Crear tabla
             tabla_frame = tk.Frame(stock_frame, bg="white")
-            tabla_frame.pack(fill="x")
-            
-            # Encabezados
-            tk.Label(tabla_frame, text="ID", width=5, font=("Arial", 10, "bold"), bg="#ECF0F1", fg="#2C3E50").grid(row=0, column=0, padx=2, pady=2, sticky="w")
-            tk.Label(tabla_frame, text="Producto", width=20, font=("Arial", 10, "bold"), bg="#ECF0F1", fg="#2C3E50").grid(row=0, column=1, padx=2, pady=2, sticky="w")
-            tk.Label(tabla_frame, text="Stock Actual", width=10, font=("Arial", 10, "bold"), bg="#ECF0F1", fg="#2C3E50").grid(row=0, column=2, padx=2, pady=2, sticky="w")
-            tk.Label(tabla_frame, text="Stock Mínimo", width=10, font=("Arial", 10, "bold"), bg="#ECF0F1", fg="#2C3E50").grid(row=0, column=3, padx=2, pady=2, sticky="w")
-            
-            # Datos
-            for i, producto in enumerate(productos_bajo_stock[:5]):  # Mostrar solo los primeros 5
-                tk.Label(tabla_frame, text=producto[0], font=("Arial", 10), bg="white").grid(row=i+1, column=0, padx=2, pady=2, sticky="w")
-                tk.Label(tabla_frame, text=producto[1], font=("Arial", 10), bg="white").grid(row=i+1, column=1, padx=2, pady=2, sticky="w")
-                tk.Label(tabla_frame, text=producto[4], font=("Arial", 10), bg="white", fg="#E74C3C" if producto[4] <= producto[5] else "black").grid(row=i+1, column=2, padx=2, pady=2, sticky="w")
-                tk.Label(tabla_frame, text=producto[5], font=("Arial", 10), bg="white").grid(row=i+1, column=3, padx=2, pady=2, sticky="w")
-            
-            if len(productos_bajo_stock) > 5:
-                tk.Label(stock_frame, text=f"... y {len(productos_bajo_stock) - 5} productos más", font=("Arial", 9), bg="white", fg="#7F8C8D").pack(anchor="e", pady=(5, 0))
+            tabla_frame.pack(fill="both", expand=True)
+
+            columnas = ("id", "producto", "stock", "stock_min")
+            tabla = ttk.Treeview(tabla_frame, columns=columnas, show="headings", selectmode="extended")
+            tabla.heading("id", text="ID", command=lambda: self.ordenar_columna(tabla, "id", False))
+            tabla.heading("producto", text="Producto", command=lambda: self.ordenar_columna(tabla, "producto", False))
+            tabla.heading("stock", text="Stock Actual", command=lambda: self.ordenar_columna(tabla, "stock", False))
+            tabla.heading("stock_min", text="Stock Mínimo", command=lambda: self.ordenar_columna(tabla, "stock_min", False))
+
+            tabla.column("id", width=50, anchor="center")
+            tabla.column("producto", width=200, anchor="w")
+            tabla.column("stock", width=100, anchor="center")
+            tabla.column("stock_min", width=120, anchor="center")
+
+            tabla.tag_configure("stock_bajo", background="#FADBD8", foreground="#E74C3C")
+
+            for producto in productos_bajo_stock:
+                tags = ("stock_bajo",) if producto[4] <= producto[5] else ()
+                fila = (producto[0], producto[1], producto[4], producto[5])
+                tabla.insert("", "end", values=fila, tags=tags)
+
+            scrollbar = ttk.Scrollbar(tabla_frame, orient="vertical", command=tabla.yview)
+            tabla.configure(yscrollcommand=scrollbar.set)
+
+            scrollbar.pack(side="right", fill="y")
+            tabla.pack(side="left", fill="both", expand=True)
         else:
             tk.Label(stock_frame, text="No hay productos con bajo stock", font=("Arial", 10), bg="white", fg="#7F8C8D").pack(pady=10)
         
@@ -481,6 +503,11 @@ class NexusCafeApp:
                 tk.Label(top_productos_frame, text="No hay datos de ventas para mostrar", font=("Arial", 10), bg="white", fg="#7F8C8D").pack(pady=10)
         except Exception as e:
             tk.Label(top_productos_frame, text=f"Error al obtener productos más vendidos: {e}", font=("Arial", 10), bg="white", fg="#E74C3C").pack(pady=10)
+        try:
+            canvas.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        except Exception:
+            pass
     
     def mostrar_ventas(self):
         """Muestra la pantalla de ventas"""
@@ -590,8 +617,10 @@ class NexusCafeApp:
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(tabla_frame, orient="vertical", command=self.tabla_ventas.yview)
-        self.tabla_ventas.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(tabla_frame, orient="horizontal", command=self.tabla_ventas.xview)
+        self.tabla_ventas.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_x.set)
         scrollbar.pack(side="right", fill="y")
+        scrollbar_x.pack(side="bottom", fill="x")
         
         # Frame de botones de acción con control de permisos
         acciones_frame = tk.Frame(contenido, bg="#ECF0F1")
@@ -980,22 +1009,15 @@ class NexusCafeApp:
         item = self.tabla_ventas.item(seleccion[0])
         venta_id = item['values'][0]
         
+        # Crear ventana de detalles
         detalles_window = tk.Toplevel(self.root)
         detalles_window.title("Detalles de Venta")
         detalles_window.geometry("700x500")
         detalles_window.configure(bg="#ECF0F1")
-
-        outer = tk.Frame(detalles_window, bg="#ECF0F1")
-        outer.pack(fill="both", expand=True)
-        canvas = tk.Canvas(outer, bg="#ECF0F1")
-        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        
+        # Frame principal
+        main_frame = tk.Frame(detalles_window, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.pack(fill="both", expand=True)
         
         # Información de la venta
         info_frame = tk.Frame(main_frame, bg="white", padx=15, pady=15, relief="solid", bd=1)
@@ -1289,8 +1311,10 @@ class NexusCafeApp:
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(tabla_frame, orient="vertical", command=self.tabla_productos.yview)
-        self.tabla_productos.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(tabla_frame, orient="horizontal", command=self.tabla_productos.xview)
+        self.tabla_productos.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_x.set)
         scrollbar.pack(side="right", fill="y")
+        scrollbar_x.pack(side="bottom", fill="x")
         
         # Frame de botones de acción con control de permisos
         acciones_frame = tk.Frame(contenido, bg="#ECF0F1")
@@ -1325,22 +1349,15 @@ class NexusCafeApp:
         if not self.verificar_permiso_accion('crear_producto'):
             messagebox.showerror("Acceso Denegado", "No tiene permisos para crear productos")
             return
+        # Crear ventana para nuevo producto
         producto_window = tk.Toplevel(self.root)
         producto_window.title("Nuevo Producto")
         producto_window.geometry("500x500")
         producto_window.configure(bg="#ECF0F1")
-
-        outer = tk.Frame(producto_window, bg="#ECF0F1")
-        outer.pack(fill="both", expand=True)
-        canvas = tk.Canvas(outer, bg="#ECF0F1")
-        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        
+        # Frame principal
+        main_frame = tk.Frame(producto_window, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.pack(fill="both", expand=True)
         
         # Campos del formulario
         campos = [
@@ -1436,22 +1453,15 @@ class NexusCafeApp:
         item = self.tabla_productos.item(seleccion[0])
         producto_data = item['values']
         
+        # Crear ventana para editar producto
         producto_window = tk.Toplevel(self.root)
         producto_window.title("Editar Producto")
         producto_window.geometry("500x500")
         producto_window.configure(bg="#ECF0F1")
-
-        outer = tk.Frame(producto_window, bg="#ECF0F1")
-        outer.pack(fill="both", expand=True)
-        canvas = tk.Canvas(outer, bg="#ECF0F1")
-        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        
+        # Frame principal
+        main_frame = tk.Frame(producto_window, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.pack(fill="both", expand=True)
         
         # Campos del formulario
         campos = [
@@ -1856,8 +1866,10 @@ class NexusCafeApp:
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(tabla_frame, orient="vertical", command=self.tabla_clientes.yview)
-        self.tabla_clientes.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(tabla_frame, orient="horizontal", command=self.tabla_clientes.xview)
+        self.tabla_clientes.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_x.set)
         scrollbar.pack(side="right", fill="y")
+        scrollbar_x.pack(side="bottom", fill="x")
         
         # Frame de botones de acción
         acciones_frame = tk.Frame(contenido, bg="#ECF0F1")
@@ -1887,22 +1899,15 @@ class NexusCafeApp:
             messagebox.showerror("Acceso Denegado", "No tiene permisos para crear clientes")
             return
             
+        # Crear ventana para nuevo cliente
         cliente_window = tk.Toplevel(self.root)
         cliente_window.title("Nuevo Cliente")
         cliente_window.geometry("400x350")
         cliente_window.configure(bg="#ECF0F1")
-
-        outer = tk.Frame(cliente_window, bg="#ECF0F1")
-        outer.pack(fill="both", expand=True)
-        canvas = tk.Canvas(outer, bg="#ECF0F1")
-        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        
+        # Frame principal
+        main_frame = tk.Frame(cliente_window, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.pack(fill="both", expand=True)
         
         # Campos del formulario
         campos = [
@@ -1976,22 +1981,15 @@ class NexusCafeApp:
         item = self.tabla_clientes.item(seleccion[0])
         cliente_data = item['values']
         
+        # Crear ventana para editar cliente
         cliente_window = tk.Toplevel(self.root)
         cliente_window.title("Editar Cliente")
         cliente_window.geometry("400x350")
         cliente_window.configure(bg="#ECF0F1")
-
-        outer = tk.Frame(cliente_window, bg="#ECF0F1")
-        outer.pack(fill="both", expand=True)
-        canvas = tk.Canvas(outer, bg="#ECF0F1")
-        scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        main_frame = tk.Frame(canvas, bg="#ECF0F1", padx=20, pady=20)
-        main_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        win = canvas.create_window((0, 0), window=main_frame, anchor="nw")
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width))
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        
+        # Frame principal
+        main_frame = tk.Frame(cliente_window, bg="#ECF0F1", padx=20, pady=20)
+        main_frame.pack(fill="both", expand=True)
         
         # Campos del formulario
         campos = [
@@ -2253,16 +2251,18 @@ class NexusCafeApp:
         
         self.preview_canvas = tk.Canvas(preview_outer, bg="white")
         preview_scrollbar = ttk.Scrollbar(preview_outer, orient="vertical", command=self.preview_canvas.yview)
+        preview_scrollbar_x = ttk.Scrollbar(preview_outer, orient="horizontal", command=self.preview_canvas.xview)
         self.preview_frame = tk.Frame(self.preview_canvas, bg="white")
         
         self.preview_frame.bind("<Configure>", lambda e: self.preview_canvas.configure(scrollregion=self.preview_canvas.bbox("all")))
         self.preview_window = self.preview_canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
         # Ajustar ancho del contenido y redimensionar gráficos según el canvas
         self.preview_canvas.bind("<Configure>", lambda e: (self.preview_canvas.itemconfigure(self.preview_window, width=e.width), getattr(self, "_ajustar_graficos_ancho", lambda *_: None)(e.width)))
-        self.preview_canvas.configure(yscrollcommand=preview_scrollbar.set)
+        self.preview_canvas.configure(yscrollcommand=preview_scrollbar.set, xscrollcommand=preview_scrollbar_x.set)
         
         self.preview_canvas.pack(side="left", fill="both", expand=True)
         preview_scrollbar.pack(side="right", fill="y")
+        preview_scrollbar_x.pack(side="bottom", fill="x")
         
         # Frame para gráficos dentro de la vista previa
         self.graficos_frame = tk.Frame(self.preview_frame, bg="white")
@@ -2778,9 +2778,11 @@ class NexusCafeApp:
             
         # Scrollbar
         scrollbar = ttk.Scrollbar(tabla_container, orient="vertical", command=tabla.yview)
-        tabla.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(tabla_container, orient="horizontal", command=tabla.xview)
+        tabla.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_x.set)
         
         scrollbar.pack(side="right", fill="y")
+        scrollbar_x.pack(side="bottom", fill="x")
         tabla.pack(side="left", fill="both", expand=True)
         
         return tabla_container
@@ -2807,9 +2809,11 @@ class NexusCafeApp:
             tabla.insert("", "end", values=fila)
             
         scrollbar = ttk.Scrollbar(tabla_container, orient="vertical", command=tabla.yview)
-        tabla.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(tabla_container, orient="horizontal", command=tabla.xview)
+        tabla.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_x.set)
         
         scrollbar.pack(side="right", fill="y")
+        scrollbar_x.pack(side="bottom", fill="x")
         tabla.pack(side="left", fill="both", expand=True)
 
         return tabla_container
@@ -2842,9 +2846,11 @@ class NexusCafeApp:
             tabla.insert("", "end", values=fila, tags=tags)
             
         scrollbar = ttk.Scrollbar(tabla_container, orient="vertical", command=tabla.yview)
-        tabla.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(tabla_container, orient="horizontal", command=tabla.xview)
+        tabla.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_x.set)
         
         scrollbar.pack(side="right", fill="y")
+        scrollbar_x.pack(side="bottom", fill="x")
         tabla.pack(side="left", fill="both", expand=True)
 
         return tabla_container
@@ -2873,9 +2879,11 @@ class NexusCafeApp:
             tabla.insert("", "end", values=fila)
 
         scrollbar = ttk.Scrollbar(tabla_container, orient="vertical", command=tabla.yview)
-        tabla.configure(yscrollcommand=scrollbar.set)
+        scrollbar_x = ttk.Scrollbar(tabla_container, orient="horizontal", command=tabla.xview)
+        tabla.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_x.set)
         
         scrollbar.pack(side="right", fill="y")
+        scrollbar_x.pack(side="bottom", fill="x")
         tabla.pack(side="left", fill="both", expand=True)
 
         return tabla_container
